@@ -84,7 +84,7 @@ const ShortTermForecast = () => {
     const apiUrl = `${endpoint}/getUltraSrtFcst?serviceKey=${apiKey}&pageNo=1&numOfRows=60&dataType=JSON&base_date=${date}&base_time=${time}&nx=60&ny=127`;
   
     try {
-      const response = await axios.get('/getWeather');
+      const response = await axios.get(apiUrl);
   
       console.log("API Response:", response.data); // API 응답 로깅
   
@@ -122,7 +122,7 @@ const ShortTermForecast = () => {
     } finally {
       setLoading(false);
     }
-  }, [ptyMapping, skyMapping]);
+  }, []);
   
 
   const prepareChartData = (data) => {

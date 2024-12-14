@@ -20,7 +20,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "proxy": "http://api.example.com",
+  "proxy": "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/"
+,
   "eslintConfig": {
     "extends": [
       "react-app",

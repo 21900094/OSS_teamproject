@@ -78,7 +78,7 @@ const RealTimeWeather = () => {
     const apiUrl = `${endpoint}/getVilageFcst?serviceKey=${apiKey}&pageNo=1&numOfRows=200&dataType=JSON&base_date=${date}&base_time=${time}&nx=60&ny=127`;
 
     try {
-      const response = await axios.get('/getWeather');
+      const response = await axios.get(apiUrl);
       const data = response.data.response.body.items.item;
 
       if (!data || !data.length) {

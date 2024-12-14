@@ -25,6 +25,44 @@ const ThreeDayForecast = () => {
     });
   };
 
+  // 기준 시간 계산 함수
+  const getBaseTime = () => {
+    const now = new Date();
+    const hours = now.getHours();
+
+    if (hours >= 2 && hours < 5) return "0200";
+    if (hours >= 5 && hours < 8) return "0500";
+    if (hours >= 8 && hours < 11) return "0800";
+    if (hours >= 11 && hours < 14) return "1100";
+    if (hours >= 14 && hours < 17) return "1400";
+    if (hours >= 17 && hours < 20) return "1700";
+    if (hours >= 20 && hours < 23) return "2000";
+    return "2300";
+  };
+
+  // 응답 데이터를 병합하는 함수
+  const mergeResponses = (responses) => {
+    const allItems = responses.flatMap((res) => res.data.response?.body?.items?.item || []);
+    const groupedData = allItems.reduce((acc, item) => {
+      const dateTimeKey = `${item.fcstDate}-${item.fcstTime}`;
+      if (!acc[dateTimeKey]) {
+        acc[dateTimeKey] = {
+          date: parseDate(item.fcstDate),
+          time: item.fcstTime.slice(0, 2) + ":00",
+        };
+      }
+      acc[dateTimeKey][item.category] = item.fcstValue;
+      return acc;
+    }, {});
+    return Object.entries(groupedData).map(([key, value]) => ({
+      ...value,
+      temperature: parseFloat(value.TMP) || 0,
+      rainProbability: parseFloat(value.POP) || 0,
+      sky: value.SKY || "-",
+      rainType: value.PTY || "-",
+    }));
+  };
+
   // API 호출 함수
   const fetchForecast = useCallback(async () => {
     setLoading(true);
@@ -32,13 +70,18 @@ const ThreeDayForecast = () => {
 
     try {
       const dates = getThreeDays(); // 오늘, 내일, 모레 날짜 계산
-      const baseTime = "0500"; // 기준 시간
+      const baseTime = getBaseTime(); // 동적으로 기준 시간 설정
       const apiKey = process.env.REACT_APP_WEATHER_API_KEY;
       const apiUrl = `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst`;
 
+      // 디버깅용 로그
+      console.log("API 요청 URL:", apiUrl);
+      console.log("API 요청 날짜:", dates);
+      console.log("API 요청 시간:", baseTime);
+
       // 3일에 대한 API 요청 생성
       const requests = dates.map((baseDate) =>
-        axios.get('/getWeather', {
+        axios.get(apiUrl, {
           params: {
             serviceKey: apiKey,
             pageNo: 1,
@@ -54,34 +97,7 @@ const ThreeDayForecast = () => {
 
       // 모든 요청 처리
       const responses = await Promise.all(requests);
-      const rawItems = responses.flatMap((res) => res.data.response?.body?.items?.item || []);
-
-      if (!rawItems || rawItems.length === 0) throw new Error("API 데이터가 비어 있습니다.");
-
-      // 필요한 데이터를 정리
-      const filteredData = rawItems
-        .filter((item) => ["TMP", "POP", "SKY", "PTY"].includes(item.category)) // 필요한 카테고리만 필터링
-        .reduce((acc, item) => {
-          const dateTimeKey = `${item.fcstDate}-${item.fcstTime}`;
-          if (!acc[dateTimeKey]) {
-            acc[dateTimeKey] = {
-              date: parseDate(item.fcstDate),
-              time: item.fcstTime.slice(0, 2) + ":00",
-            };
-          }
-          acc[dateTimeKey][item.category] = item.fcstValue;
-          return acc;
-        }, {});
-
-      // 객체를 배열로 변환
-      const formattedData = Object.entries(filteredData).map(([key, value]) => ({
-        ...value,
-        temperature: parseFloat(value.TMP) || 0,
-        rainProbability: parseFloat(value.POP) || 0,
-        sky: value.SKY || "-",
-        rainType: value.PTY || "-",
-      }));
-
+      const formattedData = mergeResponses(responses);
       setForecast(formattedData);
     } catch (err) {
       console.error("Error fetching forecast:", err);
